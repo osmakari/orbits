@@ -27,20 +27,35 @@ let elements = [];
 /**
  * @type {ControlInputs}
  */
-const controls = {
+let controls = {
     up: false,
     down: false,
-    space: false
+    left: false,
+    right: false,
+    space: false,
+    r: false
 }
+
+let lastControls = { ...controls };
 
 let lastUpdate = 0;
 
-function updateCanvasSize () {
+let endScreen = false;
+let winScreen = false;
+
+let currentLevel = 'level1';
+
+function updateCanvasSize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 
-function initInputs () {
+function initInputs() {
+
+    window.addEventListener('click', event => {
+        handleLevelSelectMenuClick(event.clientX, event.clientY);
+    });
+
     window.addEventListener('keydown', event => {
         switch (event.key) {
             case 'ArrowUp':
@@ -58,6 +73,9 @@ function initInputs () {
             case 'ArrowRight':
             case 'd':
                 controls.right = true;
+                break;
+            case 'r':
+                controls.r = true;
                 break;
             case ' ':
                 controls.space = true;
@@ -83,12 +101,15 @@ function initInputs () {
             case 'd':
                 controls.right = false;
                 break;
+            case 'r':
+                controls.r = false;
+                break;
             case ' ':
                 controls.space = false;
                 break;
         }
     });
-    
+
     window.addEventListener('touchstart', event => {
         event.preventDefault();
         const touch = event.touches[0];
@@ -110,7 +131,7 @@ function initInputs () {
     });
 }
 
-function init () {
+function init() {
     canvas = document.getElementById('orbits-canvas');
     ctx = canvas.getContext('2d');
 
@@ -119,45 +140,65 @@ function init () {
 
     initInputs();
 
-    loadLevel('level1');
+    loadLevel(currentLevel);
 
     lastUpdate = Date.now();
     update();
 }
 
-function onKill () {
+function onKill() {
     // Reload
-    loadLevel('level1');
+    const rocket = elements.findIndex(e => e instanceof Rocket);
+    elements.splice(rocket, 1);
+    endScreen = true;
+
+    // Go through all tasks and reset tasks
+    elements.filter(e => e instanceof Body).forEach(body => {
+        Object.keys(body.tasks).forEach(taskName => {
+            const task = body.tasks[taskName];
+            task.completed = false;
+            task.enterTime = null;
+        });
+    });
 }
 
-function loadLevel (level) {
+function onWin() {
+    const rocket = elements.findIndex(e => e instanceof Rocket);
+    elements.splice(rocket, 1);
+    winScreen = true;
+}
+
+function loadLevel(level) {
     elements = [];
-    
+    endScreen = false;
+    winScreen = false;
+
     fetch(`levels/${level}.json`)
         .then(response => response.json())
         .then(data => {
-            const orbits = { };
+            const orbits = {};
+            currentLevel = level;
             data.level.bodies.forEach(body => {
                 const b = new Body(body.mass || 1, body.radius || 1, body.position || { x: 0, y: 0 }, body.id);
-                if(body.orbits) {
+                if (body.orbits) {
                     orbits[b.id] = body.orbits;
                 }
                 b.velocity = body.velocity || { x: 0, y: 0 };
-                if(body.tasks) {
+                if (body.tasks) {
                     b.tasks = body.tasks;
                 }
             });
 
-            if(data.level.player) {
+            if (data.level.player) {
                 const player = data.level.player;
-                const rct = new Rocket(player.position || { x: 0, y: 0 }, { width: 0.5, height: 0.75});
+                const rct = new Rocket(player.position || { x: 0, y: 0 }, { width: 0.5, height: 0.75 });
                 rct.velocity = player.velocity || { x: 0, y: 0 };
                 rct.rotation = player.rotation || 0;
             }
-            
+
             Object.keys(orbits).forEach(bodyId => {
                 const body = elements.find(e => e.id === bodyId);
-                if(body) {
+                if (body) {
                     const orbitBody = elements.find(e => e.id === orbits[bodyId]);
                     body.orbitBody = orbitBody;
                 }
@@ -165,8 +206,14 @@ function loadLevel (level) {
         });
 }
 
-function update () {
+function update() {
     const now = Date.now();
+
+    if (controls.r && !lastControls.r) {
+        loadLevel(currentLevel);
+        endScreen = false;
+    }
+
     elements.forEach(element => {
         element.handleInput(controls);
         element.update((now - lastUpdate) / 1000);
@@ -175,9 +222,30 @@ function update () {
 
     render();
     requestAnimationFrame(update);
+
+    // Check if all tasks are completed
+    let allTasksCompleted = true;
+    if (elements.length === 0)
+        allTasksCompleted = false;
+
+    elements.filter(e => e instanceof Body).forEach(body => {
+        Object.keys(body.tasks).forEach((taskName, index) => {
+            const task = body.tasks[taskName];
+
+            if (!task.completed) {
+                allTasksCompleted = false;
+            }
+        });
+    });
+
+    if (allTasksCompleted && !winScreen) {
+        onWin();
+    }
+
+    lastControls = { ...controls };
 }
 
-function render () {
+function render() {
 
     const options = {
         canvas,
@@ -195,11 +263,18 @@ function render () {
     renderUI(options);
 }
 
-function renderUI (options) {
-    let tasks = { };
+function renderUI(options) {
+
+    renderLevelSelectMenu();
+    renderControls();
+
+    let tasks = [];
 
     elements.filter(e => e instanceof Body).forEach(body => {
-        tasks = { ...tasks, ...body.tasks };
+        Object.keys(body.tasks).forEach(taskName => {
+            const task = body.tasks[taskName];
+            tasks.push({...task, type: taskName});
+        });
     });
 
     const boxWidth = 170;
@@ -224,24 +299,24 @@ function renderUI (options) {
     ctx.lineTo(140, 10 + boxHeight);
     ctx.stroke();
 
-    Object.keys(tasks).forEach((taskName, index) => {
-        const task = tasks[taskName];
+    tasks.forEach((task, index) => {
+        ctx.font = '12px monospace';
         const x = 15;
-        const y = 40 + 20 * index;
-
-        const lines = getLines(ctx, task.info, 120);
         
-        for(let i = 0; i < lines.length; i++) {
+        const lines = getLines(ctx, task.info, 120);
+        const y = 40 + (20 * lines.length) * index;
+
+        for (let i = 0; i < lines.length; i++) {
             ctx.fillText(lines[i], x, y + 15 * i);
         }
 
-        switch(taskName) {
+        switch (task.type) {
             case 'orbit':
-                if(task.completed) {
+                if (task.completed) {
                     ctx.font = 'bold 18px monospace';
                     ctx.fillText('\u2713', 152, y + 7);
                 }
-                else if(task.enterTime) {
+                else if (task.enterTime) {
                     const time = Date.now() - task.enterTime;
                     const seconds = time / 1000;
                     const left = task.time - seconds;
@@ -251,6 +326,14 @@ function renderUI (options) {
                 break;
         }
     });
+
+    if (endScreen) {
+        renderKillScreen(options);
+    }
+
+    if (winScreen) {
+        renderWinScreen(options);
+    }
 }
 
 function getLines(ctx, text, maxWidth) {
@@ -270,6 +353,99 @@ function getLines(ctx, text, maxWidth) {
     }
     lines.push(currentLine);
     return lines;
+}
+
+function renderKillScreen(options) {
+    ctx.globalCompositeOperation = 'difference';
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('You died', canvas.width / 2, canvas.height / 2);
+    ctx.font = '24px monospace';
+    ctx.fillText('Press R to restart', canvas.width / 2, canvas.height / 2 + 50);
+
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+function renderWinScreen(options) {
+    ctx.globalCompositeOperation = 'difference';
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('You win', canvas.width / 2, canvas.height / 2);
+    ctx.font = '24px monospace';
+    ctx.fillText('Press R to restart', canvas.width / 2, canvas.height / 2 + 50);
+
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+const levels = [
+    'level1',
+    'level2',
+    'level3',
+    'level4',
+];
+
+const levelBoxSize = 25;
+const levelBoxSpacing = 5;
+
+
+function renderLevelSelectMenu() {
+
+    const menuHeight = levelBoxSize + levelBoxSpacing * 2;
+    const menuWidth = (levelBoxSize + levelBoxSpacing) * levels.length - levelBoxSpacing;
+    const menuX = (canvas.width - menuWidth) / 2;
+    const menuY = canvas.height - menuHeight - 10;
+
+    ctx.font = '12px monospace';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    levels.forEach((level, index) => {
+        const levelBoxX = menuX + index * (levelBoxSize + levelBoxSpacing) + levelBoxSpacing;
+        const levelBoxY = menuY + levelBoxSpacing;
+        const levelBoxText = (index + 1).toString();
+
+        ctx.strokeStyle = 'white';
+        ctx.strokeRect(levelBoxX, levelBoxY, levelBoxSize, levelBoxSize);
+
+        ctx.fillStyle = 'white';
+        ctx.fillText(levelBoxText, levelBoxX + levelBoxSize / 2, levelBoxY + levelBoxSize / 2);
+    });
+}
+
+function handleLevelSelectMenuClick(x, y) {
+
+    const menuHeight = levelBoxSize + levelBoxSpacing * 2;
+    const menuWidth = (levelBoxSize + levelBoxSpacing) * levels.length - levelBoxSpacing;
+    const menuX = (canvas.width - menuWidth) / 2;
+    const menuY = canvas.height - menuHeight - 10;
+    
+    levels.forEach((level, index) => {
+        const levelBoxX = menuX + index * (levelBoxSize + levelBoxSpacing) + levelBoxSpacing;
+        const levelBoxY = menuY + levelBoxSpacing;
+
+        if (x > levelBoxX && x < levelBoxX + levelBoxSize && y > levelBoxY && y < levelBoxY + levelBoxSize) {
+            loadLevel(level);
+        }
+    });
+}
+
+function renderControls () {
+    // Draw controls on the bottom right corner
+    ctx.font = '12px monospace';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('w/up arrow: Boost', canvas.width - 10, canvas.height - 10);
+    ctx.fillText('a/left arrow: Rotate left', canvas.width - 10, canvas.height - 25);
+    ctx.fillText('d/right arrow: Rotate right', canvas.width - 10, canvas.height - 40);
+    ctx.fillText('s: change pro/retrograde lock', canvas.width - 10, canvas.height - 55);
+    ctx.fillText('space: lock pro/retrograde', canvas.width - 10, canvas.height - 70);
+    ctx.fillText('r: Restart', canvas.width - 10, canvas.height - 85);
 }
 
 window.onload = init;
