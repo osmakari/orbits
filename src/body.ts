@@ -1,4 +1,5 @@
 import Entity, { EntityRenderOptions, PHYSICS_STEP, PHYSICS_TRAJECTORY_BUFFER_SIZE, Vector2 } from "./entity";
+import { OrbitTaskData } from "./level";
 
 export default class Body extends Entity {
 
@@ -6,7 +7,7 @@ export default class Body extends Entity {
 
     override update (deltaTime: number) {
 
-        const deltaMp = deltaTime / PHYSICS_STEP;
+        const deltaMp = deltaTime / PHYSICS_STEP * 2;
 
         if(this.orbitBody !== null) {
 
@@ -43,10 +44,25 @@ export default class Body extends Entity {
         ctx.stroke();
         ctx.fill();
 
-        /*
+        
         if(this.tasks.orbit) 
-            this.renderHalo(options, this.tasks.orbit);
-        */
+            this.renderHalo(options, this.tasks.orbit as OrbitTaskData);
+    }
+
+    renderHalo (options: EntityRenderOptions, task: OrbitTaskData) {
+        const { ctx } = options;
+
+        const timeRad = (Date.now() / 10000) % (2 * Math.PI);
+
+        ctx.strokeStyle = task.enterTime ? '#383' : '#555';
+        ctx.setLineDash([2, 5]); // Set the line dash pattern to create a dotted line
+        ctx.beginPath();
+        const cameraX = (this.position.x - options.cameraPosition.x) * options.cameraSize + options.canvas.width / 2;
+        const cameraY = (options.cameraPosition.y - this.position.y) * options.cameraSize + options.canvas.height / 2;
+        const cameraRadius = options.cameraSize * task.radius; 
+        ctx.arc(cameraX, cameraY, cameraRadius, timeRad, timeRad + 2 * Math.PI);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset the line dash pattern to solid line
     }
 
     override simulateTrajectory () {

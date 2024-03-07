@@ -1,15 +1,34 @@
 import Body from "./body";
 import Entity, { EntityRenderOptions, PHYSICS_STEP, PHYSICS_TRAJECTORY_BUFFER_SIZE, Vector2 } from "./entity";
 import Inputs from "./inputs";
+import { OrbitTaskData } from "./level";
+import Orbits, { OrbitsState } from "./orbits";
 
 
 export default class Rocket extends Entity {
 
-    pointingPrograde: boolean = true;
+    
+    private pointDirection (dir: number, delta: number) {
+        const angle = Math.atan2(this.velocity.x * dir, this.velocity.y * dir);
+        const targetAngle = (angle * 180) / Math.PI;
+        const rotationSpeed = 120; // adjust the rotation speed as desired
+        const maxRotationDelta = rotationSpeed * delta;
+        let angleDelta = targetAngle - this.rotation;
+
+        if (angleDelta > 180) {
+            angleDelta -= 360;
+        } else if (angleDelta < -180) {
+            angleDelta += 360;
+        }
+
+        const rotationDirection = Math.sign(angleDelta);
+        const rotationAmount = rotationDirection * Math.min(Math.abs(angleDelta), maxRotationDelta);
+        this.rotation += rotationAmount;
+    }
 
     override update (deltaTime: number) {
 
-        const deltaMp = deltaTime / PHYSICS_STEP;
+        const deltaMp = deltaTime / PHYSICS_STEP * 2;
         const step = PHYSICS_STEP;
 
         Entity.entities.forEach(ent => {
@@ -26,26 +45,33 @@ export default class Rocket extends Entity {
             }
         });
 
-        if (Inputs.isKeyDown('ArrowLeft') || Inputs.isKeyDown('a')) {
-            this.rotation -= 120 * deltaTime;
-        }
-        else if (Inputs.isKeyDown('ArrowRight') || Inputs.isKeyDown('d')) {
-            this.rotation += 120 * deltaTime;
-        }
-
-        if (Inputs.isKeyDown('ArrowUp') || Inputs.isKeyDown('w')) {
-            const thrust = 1;
-            const directionVector = {
-                x: Math.sin((Math.PI / 180) * this.rotation),
-                y: Math.cos((Math.PI / 180) * this.rotation),
+        // Disable inputs on screens
+        if(Orbits.state === OrbitsState.GAME) {
+            if (Inputs.isKeyDown('ArrowLeft') || Inputs.isKeyDown('a')) {
+                this.rotation -= 120 * deltaTime;
             }
-            this.velocity.x += thrust * directionVector.x * step * deltaMp;
-            this.velocity.y += thrust * directionVector.y * step * deltaMp;
+            else if (Inputs.isKeyDown('ArrowRight') || Inputs.isKeyDown('d')) {
+                this.rotation += 120 * deltaTime;
+            }
+    
+            if (Inputs.isKeyDown(' ')) {
+                const thrust = 1;
+                const directionVector = {
+                    x: Math.sin((Math.PI / 180) * this.rotation),
+                    y: Math.cos((Math.PI / 180) * this.rotation),
+                }
+                this.velocity.x += thrust * directionVector.x * step * deltaMp;
+                this.velocity.y += thrust * directionVector.y * step * deltaMp;
+            }
+    
+            if(Inputs.isKeyDown('s')) {
+                this.pointDirection(-1, deltaTime);
+            }
+            else if(Inputs.isKeyDown('w')) {
+                this.pointDirection(1, deltaTime);
+            }
         }
 
-        if(Inputs.isKeyPressed('s')) {
-            this.pointingPrograde = !this.pointingPrograde;
-        }
 
         this.position.x += this.velocity.x * step * deltaMp;
         this.position.y += this.velocity.y * step * deltaMp;
@@ -58,10 +84,10 @@ export default class Rocket extends Entity {
                 const distanceY = ent.position.y - this.position.y;
                 const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
                 if(distance < ent.size.x) {
-                    //onKill();
+                    Orbits.endGame(false)
                     break;
                 }
-                /*
+                
                 // Check tasks
                 if(ent.tasks) {
                     for(let t in ent.tasks) {
@@ -70,33 +96,25 @@ export default class Rocket extends Entity {
                             continue;
 
                         if(t === 'orbit') {
-                            if(distance < task.radius) {
-                                if(!task.enterTime) {
-                                    task.enterTime = Date.now();
+                            const orbitTask: OrbitTaskData = task as OrbitTaskData;
+                            if(distance < orbitTask.radius) {
+                                if(!orbitTask.enterTime) {
+                                    orbitTask.enterTime = Date.now();
                                 }
                                 else {
-                                    if(Date.now() - task.enterTime > task.time * 1000) {
+                                    if(Date.now() - orbitTask.enterTime > orbitTask.time) {
                                         task.completed = true;
                                     }
                                 }
                             }
                             else {
-                                task.enterTime = undefined;
+                                orbitTask.enterTime = undefined;
                             }
                         }
                     }
                 }
-                */
             }
         }
-        /*
-        if (this.inputs.space) {
-            this.rotateProRetrograde(delta);
-        }
-
-        
-        this.lastFrameInputs = { ...this.inputs };
-        */
         
         this.rotation = this.rotation % 360;
 

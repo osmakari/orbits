@@ -12,7 +12,14 @@
                     "y": 0
                 },
                 "radius": 5,
-                "mass": 100
+                "mass": 100,
+                "tasks": {
+                    "orbit": {
+                        "radius": 10,
+                        "time": 10000,
+                        "info": "Orbit \"sun\" inside 10u radius"
+                    }
+                }
             },
             {
                 "id": "planet",
@@ -31,7 +38,7 @@
                 "tasks": {
                     "orbit": {
                         "radius": 10,
-                        "time": 10,
+                        "time": 10000,
                         "info": "Orbit \"planet\" inside 10u radius"
                     }
                 }
@@ -40,13 +47,13 @@
         "player": {
             "position": {
                 "x": 0,
-                "y": 10
+                "y": -15
             },
             "velocity": {
                 "x": -3,
                 "y": 0
             },
-            "rotation": -90
+            "rotation": 90
         }
     }
 }

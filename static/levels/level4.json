@@ -16,7 +16,7 @@
                 "tasks": {
                     "orbit": {
                         "radius": 9,
-                        "time": 15,
+                        "time": 15000,
                         "info": "Orbit \"sun\" inside 9u radius"
                     }
                 }

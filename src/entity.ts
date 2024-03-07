@@ -1,18 +1,16 @@
+import { TaskData } from "./level";
+import { RenderOptions } from "./orbits";
 
 export type Vector2 = {
     x: number,
     y: number
 };
 
-export type EntityRenderOptions = {
-    cameraPosition:     Vector2,
-    cameraSize:         number,
+export interface EntityRenderOptions extends RenderOptions{
     // Center position of the entity in screen coordinates
     eScreenPosition:    Vector2,
     // Size of the entity on the screen
-    eScreenSize:        Vector2,
-    canvas:             HTMLCanvasElement,
-    ctx:                CanvasRenderingContext2D;
+    eScreenSize:        Vector2
 };
 
 export const PHYSICS_STEP = 0.02;
@@ -46,6 +44,8 @@ export default class Entity {
     }
 
     orbitPoints: Vector2[] = [];
+
+    tasks: { [key: string]: TaskData } = {};
 
     constructor(position?: Vector2, rotation?: number, size?: Vector2, velocity?: Vector2) {
         this.id = `e-${Entity.idCounter++}`;
@@ -81,7 +81,6 @@ export default class Entity {
         ctx.strokeStyle = color;
         ctx.beginPath();
         ctx.moveTo(eScreenPosition.x, eScreenPosition.y);
-        console.log(options);
         this.orbitPoints.forEach(point => {
             const x = (point.x - options.cameraPosition.x) * options.cameraSize + options.canvas.width / 2;
             const y = (options.cameraPosition.y - point.y) * options.cameraSize + options.canvas.height / 2;
