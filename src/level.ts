@@ -1,6 +1,6 @@
 import Body from "./body";
 import Entity, { Vector2 } from "./entity";
-import Orbits, { OrbitsState } from "./orbits";
+import Orbits, { OrbitsState, RenderOptions } from "./orbits";
 import Rocket from "./rocket";
 
 export interface TaskData {
@@ -73,6 +73,16 @@ export type LevelData = {
     }
 }
 
+const levels = [
+    'levels/level1.json',
+    'levels/level2.json',
+    'levels/level3.json',
+    'levels/level4.json',
+];
+
+const levelBoxSize = 25;
+const levelBoxSpacing = 5;
+
 
 export default class Level {
 
@@ -140,6 +150,54 @@ export default class Level {
                 Level.currentLevel = lvl;
 
             });
+    }
+
+    static renderLevelSelect (options: RenderOptions) {
+        
+        const { canvas, ctx } = options;
+        
+        const menuHeight = levelBoxSize + levelBoxSpacing * 2;
+        const menuWidth = (levelBoxSize + levelBoxSpacing) * levels.length - levelBoxSpacing;
+        const menuX = (canvas.width - menuWidth) / 2;
+        const menuY = canvas.height - menuHeight - 10;
+    
+        ctx.font = '12px monospace';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+    
+        levels.forEach((level, index) => {
+            const levelBoxX = menuX + index * (levelBoxSize + levelBoxSpacing) + levelBoxSpacing;
+            const levelBoxY = menuY + levelBoxSpacing;
+            const levelBoxText = (index + 1).toString();
+    
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(levelBoxX, levelBoxY, levelBoxSize, levelBoxSize);
+    
+            ctx.fillStyle = 'white';
+            ctx.fillText(levelBoxText, levelBoxX + levelBoxSize / 2, levelBoxY + levelBoxSize / 2);
+        });
+
+    }
+
+    static onLevelSelectClick (options: RenderOptions, mousePosition: Vector2) {
+
+        const { canvas } = options;
+
+        const menuHeight = levelBoxSize + levelBoxSpacing * 2;
+        const menuWidth = (levelBoxSize + levelBoxSpacing) * levels.length - levelBoxSpacing;
+        const menuX = (canvas.width - menuWidth) / 2;
+        const menuY = canvas.height - menuHeight - 10;
+        
+        levels.forEach((level, index) => {
+            const levelBoxX = menuX + index * (levelBoxSize + levelBoxSpacing) + levelBoxSpacing;
+            const levelBoxY = menuY + levelBoxSpacing;
+    
+            if (mousePosition.x > levelBoxX && mousePosition.x < levelBoxX + levelBoxSize && 
+                mousePosition.y > levelBoxY && mousePosition.y < levelBoxY + levelBoxSize) {
+                Level.load(level);
+            }
+        });
     }
 
 }

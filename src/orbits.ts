@@ -54,7 +54,7 @@ export default class Orbits {
         Inputs.init(Orbits.canvas);
 
         // Load level
-        Level.load('levels/level3.json');
+        Level.load('levels/level1.json');
 
         // Start loop
         Orbits.update();
@@ -85,6 +85,17 @@ export default class Orbits {
 
         if(Inputs.isKeyPressed('r')) {
             Level.load(Level.currentLevel?.path || 'levels/level1.json');
+        }
+
+        const options: RenderOptions = {
+            cameraPosition: Orbits.cameraPosition,
+            cameraSize: Orbits.cameraSize,
+            canvas: Orbits.canvas,
+            ctx: Orbits.ctx
+        };
+
+        if(Inputs.isMousePressed(0)) {
+            Level.onLevelSelectClick(options, Inputs.mousePosition);
         }
 
         // Reset inputs
@@ -138,6 +149,8 @@ export default class Orbits {
                 UI.renderWinScreen(options);
                 break;
         }
+
+        Level.renderLevelSelect(options);
     }
 
     public static endGame (win: boolean) {

@@ -13,18 +13,18 @@ export default class Inputs {
 
     public static init (canvas: HTMLCanvasElement) {
         window.addEventListener('mousemove', Inputs.onMouseMove);
-        window.addEventListener('mousedown', Inputs.onMouseDown);
-        window.addEventListener('mouseup', Inputs.onMouseUp);
+        window.addEventListener('mousedown', Inputs.onMouseDown, false);
+        window.addEventListener('mouseup', Inputs.onMouseUp, false);
 
-        window.addEventListener('keydown', Inputs.onKeyDown);
-        window.addEventListener('keyup', Inputs.onKeyUp);
+        window.addEventListener('keydown', Inputs.onKeyDown, false);
+        window.addEventListener('keyup', Inputs.onKeyUp, false);
 
     }
 
     public static update () {
-        // Reset flags
-        Inputs.mouseClickFlags = {};
-        Inputs.keyClickFlags = {};
+        // Set key/mouse flags
+        Inputs.mouseClickFlags = {...Inputs.mouseButtons};
+        Inputs.keyClickFlags = {...Inputs.keys};
     }
 
     public static isKeyDown (key: string) {
@@ -32,7 +32,7 @@ export default class Inputs {
     }
 
     public static isKeyPressed (key: string) {
-        return Inputs.keyClickFlags[key];
+        return Inputs.keys[key] && !Inputs.keyClickFlags[key];
     }
 
     public static isMouseDown (button: number) {
@@ -40,7 +40,7 @@ export default class Inputs {
     }
 
     public static isMousePressed (button: number) {
-        return Inputs.mouseClickFlags[button];
+        return Inputs.mouseButtons[button] && !Inputs.mouseClickFlags[button];
     }
 
     private static onMouseMove (e: MouseEvent) {
@@ -49,7 +49,6 @@ export default class Inputs {
 
     private static onMouseDown (e: MouseEvent) {
         Inputs.mouseButtons[e.button] = true;
-        Inputs.mouseClickFlags[e.button] = true;
     }
 
     private static onMouseUp (e: MouseEvent) {
@@ -58,7 +57,6 @@ export default class Inputs {
 
     private static onKeyDown (e: KeyboardEvent) {
         Inputs.keys[e.key] = true;
-        Inputs.keyClickFlags[e.key] = true;
     }
 
     private static onKeyUp (e: KeyboardEvent) {
