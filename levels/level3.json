@@ -1,0 +1,59 @@
+{
+    "name": "TestLevel",
+    "version": "1.0.0",
+    "author": "TestAuthor",
+
+    "level": {
+        "bodies": [
+            {
+                "id": "sun",
+                "position": {
+                    "x": 0,
+                    "y": 0
+                },
+                "radius": 5,
+                "mass": 100,
+                "tasks": {
+                    "orbit": {
+                        "radius": 10,
+                        "time": 10000,
+                        "info": "Orbit \"sun\" inside 10u radius"
+                    }
+                }
+            },
+            {
+                "id": "planet",
+                "position": {
+                    "x": 30,
+                    "y": 0
+                },
+                "velocity": {
+                    "x": 0,
+                    "y": 2
+                },
+                "orbits": "sun",
+                "radius": 2,
+                "mass": 70,
+
+                "tasks": {
+                    "orbit": {
+                        "radius": 10,
+                        "time": 10000,
+                        "info": "Orbit \"planet\" inside 10u radius"
+                    }
+                }
+            }
+        ],
+        "player": {
+            "position": {
+                "x": 0,
+                "y": -15
+            },
+            "velocity": {
+                "x": -3,
+                "y": 0
+            },
+            "rotation": 90
+        }
+    }
+}

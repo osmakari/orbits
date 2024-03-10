@@ -1,0 +1,37 @@
+{
+    "name": "TestLevel",
+    "version": "1.0.0",
+    "author": "TestAuthor",
+
+    "level": {
+        "bodies": [
+            {
+                "id": "sun",
+                "position": {
+                    "x": -20,
+                    "y": 0
+                },
+                "radius": 7,
+                "mass": 300,
+                "tasks": {
+                    "orbit": {
+                        "radius": 9,
+                        "time": 15000,
+                        "info": "Orbit \"sun\" inside 9u radius"
+                    }
+                }
+            }
+        ],
+        "player": {
+            "position": {
+                "x": 5,
+                "y": -15
+            },
+            "velocity": {
+                "x": 1.5,
+                "y": 4
+            },
+            "rotation": 90
+        }
+    }
+}
